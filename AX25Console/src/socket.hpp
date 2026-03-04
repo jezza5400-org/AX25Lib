@@ -1,8 +1,6 @@
 #ifdef _WIN32
 #include <winsock2.h>
 #include <ws2tcpip.h>
-#include <stdexcept>
-#include <string>
 #pragma comment(lib, "ws2_32.lib")
 using socket_t = SOCKET;
 #define INVALID_SOCK INVALID_SOCKET
@@ -16,6 +14,9 @@ using socket_t = int;
 #define INVALID_SOCK -1
 #define close_socket close
 #endif
+
+#include <stdexcept>
+#include <string>
 
 inline void socket_init() {
 #ifdef _WIN32
