@@ -76,9 +76,10 @@ int main(int argc, char** argv)
     AX25FrameBuilder builder(axCfg);
     AX25Decoder decoder;
 
-    std::cout << "AX.25 console (no KISS/Direwolf). Type messages and press Enter." << std::endl;
+    std::cout << "AX.25 console (Direwolf). Type messages and press Enter." << std::endl;
     std::cout << "Loaded config: " << cfg.fromCallsign << "-" << cfg.fromSSID
               << " -> " << cfg.toCallsign << "-" << cfg.toSSID << std::endl;
+    std::cout << std::endl;
 
     for (;;) {
         std::cout << ">>> " << std::flush;
@@ -87,9 +88,12 @@ int main(int argc, char** argv)
         if (line.empty()) continue;
 
         std::vector<uint8_t> payload(line.begin(), line.end());
+        
+        //Build AX.25 frame, then wrap in KISS frame
         auto frame = builder.buildAx25Frame(payload);
+        frame = builder.buildKissFrame(frame);
 
-        std::cout << "AX.25 Frame: ";
+        std::cout << "AX.25 KISS Frame: ";
         printHex(frame);
 
         auto decoded = decoder.decodePacket(frame);
