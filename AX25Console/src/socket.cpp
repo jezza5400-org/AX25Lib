@@ -3,7 +3,7 @@
 socket_t connect_kiss(const std::string host, int port)
 {
     socket_t sockfd = socket(AF_INET, SOCK_STREAM, 0); // TCP socket
-    if (sockfd == INVALID_SOCKET)
+    if (sockfd == INVALID_SOCK)
             throw std::runtime_error("socket creation failed");
     
     sockaddr_in addr{};

@@ -26,6 +26,15 @@ inline void socket_init() {
 #endif
 }
 
+inline void socket_close(socket_t sockfd)
+{
+#ifdef _WIN32
+    closesocket(sockfd);
+#else
+    close_socket(sockfd);
+#endif
+}
+
 // Call once at program exit on Windows (no-op on Linux)
 inline void socket_cleanup() {
 #ifdef _WIN32
