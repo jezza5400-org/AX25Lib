@@ -1,9 +1,10 @@
 #include <pybind11/pybind11.h>
 #include <pybind11/stl.h>
 
-#include "AX25Decoder.hpp"
-#include "AX25FrameBuilder.hpp"
-#include "AX25Config.hpp"
+#include "protocall/AX25Decoder.hpp"
+#include "protocall/AX25FrameBuilder.hpp"
+#include "protocall/AX25Config.hpp"
+#include "Direwolf.h"
 
 namespace py = pybind11;
 
@@ -65,5 +66,66 @@ PYBIND11_MODULE(AX25Python, m)
             auto payload = bytes_to_vec(payload_bytes);
             auto frame = self.buildAx25Frame(payload);
             return vec_to_bytes(frame);
+        }, py::arg("payload"))
+        .def("buildKissFrame", [](AX25FrameBuilder& self, const py::bytes& payload_bytes)
+        {
+            auto payload = bytes_to_vec(payload_bytes);
+            auto frame = self.buildKissFrame(payload);
+            return vec_to_bytes(frame);
         }, py::arg("payload"));
+
+    py::class_<DirewolfConnectionInfo>(m, "DirewolfConnectionInfo")
+        .def(py::init<>())
+        .def(py::init<const std::string&, int>(), py::arg("host") = "127.0.0.1", py::arg("port") = 8001)
+        .def_readwrite("host", &DirewolfConnectionInfo::host)
+        .def_readwrite("port", &DirewolfConnectionInfo::port);
+
+    py::class_<DirewolfPacketInfo>(m, "DirewolfPacketInfo")
+        .def(py::init<>())
+        .def(py::init([](const std::string& to_callsign, int to_ssid, const std::string& from_callsign, int from_ssid)
+        {
+            DirewolfPacketInfo info;
+            info.toCallsign = to_callsign;
+            info.toSSID = to_ssid;
+            info.fromCallsign = from_callsign;
+            info.fromSSID = from_ssid;
+            return info;
+        }),
+            py::arg("to_callsign") = "NOCALL",
+            py::arg("to_ssid") = 0,
+            py::arg("from_callsign") = "NOCALL",
+            py::arg("from_ssid") = 0)
+        .def_readwrite("to_callsign", &DirewolfPacketInfo::toCallsign)
+        .def_readwrite("to_ssid", &DirewolfPacketInfo::toSSID)
+        .def_readwrite("from_callsign", &DirewolfPacketInfo::fromCallsign)
+        .def_readwrite("from_ssid", &DirewolfPacketInfo::fromSSID);
+
+    py::class_<DirewolfConfig>(m, "DirewolfConfig")
+        .def(py::init<>())
+        .def(py::init([](const DirewolfConnectionInfo& connection_info, const DirewolfPacketInfo& packet_info)
+        {
+            DirewolfConfig config;
+            config.connectionInfo = connection_info;
+            config.packetInfo = packet_info;
+            return config;
+        }), py::arg("connection_info"), py::arg("packet_info"))
+        .def_readwrite("connection_info", &DirewolfConfig::connectionInfo)
+        .def_readwrite("packet_info", &DirewolfConfig::packetInfo);
+
+    py::class_<Direwolf>(m, "Direwolf")
+        .def(py::init<>())
+        .def(py::init<DirewolfConfig>(), py::arg("config"))
+        .def("listen", &Direwolf::listen)
+        .def("send_packet", [](Direwolf& self, int packet_type, const py::bytes& payload_bytes)
+        {
+            self.sendPacket(packet_type, bytes_to_vec(payload_bytes));
+        }, py::arg("packet_type"), py::arg("payload"))
+        .def("on_packet_received", [](Direwolf& self, int packet_type, py::function callback)
+        {
+            self.onPacketReceived<std::vector<uint8_t>>(packet_type, [callback = std::move(callback)](std::vector<uint8_t> payload)
+            {
+                py::gil_scoped_acquire acquire;
+                callback(vec_to_bytes(payload));
+            });
+        }, py::arg("packet_type"), py::arg("callback"));
 }

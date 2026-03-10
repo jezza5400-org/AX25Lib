@@ -15,14 +15,18 @@ using socket_t = int;
 #define close_socket close
 #endif
 
-#include <stdexcept>
 #include <string>
+
+#include "fatal_error.hpp"
 
 inline void socket_init() {
 #ifdef _WIN32
     WSADATA wsa;
     if (WSAStartup(MAKEWORD(2, 2), &wsa) != 0)
-        throw std::runtime_error("WSAStartup failed");
+        direwolf_fatal::fail(
+            "Windows socket initialization failed",
+            "WSAStartup failed while preparing the TCP client used to connect to Direwolf."
+        );
 #endif
 }
 
